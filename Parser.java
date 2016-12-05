@@ -1,5 +1,3 @@
-import com.sun.org.apache.bcel.internal.classfile.Code;
-import com.sun.org.apache.regexp.internal.RE;
 
 import java.util.ArrayList;
 import java.util.regex.Matcher;
@@ -18,17 +16,14 @@ public class Parser {
     private static final Pattern PUSH_AND_POP_PATTERN = Pattern.compile(PUSH_AND_POP);
 
 
-    private static final String PROGRAM_FLOW= "\\b(label|goto|if-goto)\\b";
-    private static final Pattern PROGRAM_FLOW_PATTERN=Pattern.compile(PROGRAM_FLOW);
+    private static final String OPERATION= "\\b(label|goto|if-goto|call|function|return)\\b";
+    private static final Pattern OPERATION_PATTERN=Pattern.compile(OPERATION);
 
+    private static final String PROGRAM_FLOW= "\\b(label|goto|if-goto)\\b";
     private static final String NAME ="[a-zA-Z]{1}\\w*+";
     private static final Pattern NAME_PATTERN= Pattern.compile(NAME);
 
     private static final String FUNCTION_OR_CALL= "\\b(call|function)\\b";
-    private static final Pattern FUNCTION_OR_CALL_PATTERN= Pattern.compile(FUNCTION_OR_CALL);
-
-    private static final String RETURN="return";
-    private static final Pattern RETURN_PATTERN=Pattern.compile(RETURN);
 
     private static final String MEMORY= "\\b(constant|local|argument|this|that|pointer|temp)\\b";
     private static final Pattern MEMORY_PATTERN= Pattern.compile(MEMORY);
@@ -39,8 +34,6 @@ public class Parser {
     private static final String ARITHMETIC ="\\b(add|sub|neg|eq|gt|lt|and|or|not)\\b";
     private static final Pattern ARITHMETIC_PATTERN= Pattern.compile(ARITHMETIC);
 
-    /** a string that represent the current arithmetic operation*/
-    private String curArithmetic;
     /** A string that represent the current memory address*/
     private String curMemory;
     /** A string that represent the current number being processed*/
@@ -58,7 +51,7 @@ public class Parser {
 
     /** a constructor*/
     public Parser(){
-        this.name=this.operation=this.curMemory=this.curArithmetic="";
+        this.name=this.operation=this.curMemory="";
         this.vmLines= new ArrayList<>();
 
     }
@@ -88,19 +81,8 @@ public class Parser {
             { //translate the arithmetic operation
                 CodeWriter.getCodeWriter().translateArithmetic(this.operation);
             }
-            else if (parseProgramFlow()){
-                parseName();
-                CodeWriter.getCodeWriter().writeProgramFlow(this.operation, this.name);
-            }
-            else if(parseFunctionOperation()){
-                parseName();
-                if(insertDecimalNumber()){
-                    this.curNumber=0;
-                }
-                CodeWriter.getCodeWriter().writeFunction(this.operation, this.name,this.curNumber);
-            }else{
-                parseReturnOperation();
-                CodeWriter.getCodeWriter().writeReturn(this.operation, this.name,this.curNumber);
+            else{
+                programControlOperations(); // parse the program control operations
             }
         }
     }
@@ -179,12 +161,12 @@ public class Parser {
     }
 
     /**
-     * check for a label definition or goto command or a if-goto command
-     * @return return true if it was a program flow operation else return false
+     * check for a program flow operation or a function command
+     * @return return true if it one was found else return false
      */
-    private boolean parseProgramFlow() {
-        this.curMatcher = PROGRAM_FLOW_PATTERN.matcher(curLine);
-        if (this.curMatcher.find()) { //check for a program flow operation
+    private boolean signifyOperation() {
+        this.curMatcher = OPERATION_PATTERN.matcher(curLine);
+        if (this.curMatcher.find()) { //check for some operation
             this.operation = this.curLine.substring(this.curMatcher.start(), this.curMatcher.end());
             this.curLine=this.curLine.substring(this.curMatcher.end()); //delete the prefix
             return true;
@@ -207,29 +189,23 @@ public class Parser {
     }
 
     /**
-     * check for a function call or a function definition
-     * @return return true if it was a function call else return false
+     * parsing the program control operation
      */
-    private boolean parseFunctionOperation() {
-        this.curMatcher = FUNCTION_OR_CALL_PATTERN.matcher(curLine);
-        if (this.curMatcher.find()) { //check for a function call operation
-            this.operation = this.curLine.substring(this.curMatcher.start(), this.curMatcher.end());
-            this.curLine=this.curLine.substring(this.curMatcher.end()); //delete the prefix
-            return true;
+    private void programControlOperations(){
+        signifyOperation(); // check for the operation
+        if(this.operation.equals(PROGRAM_FLOW)){ // check for a program flow operation
+            parseName();
+            CodeWriter.getCodeWriter().writeProgramFlow(this.operation, this.name);
+        }else if(this.operation.equals(FUNCTION_OR_CALL))
+        {  //check for a declaration of a function or a function call
+            parseName(); //parse the function name and the number of arguments
+            if(insertDecimalNumber()){
+                this.curNumber=0;
+            }
+            CodeWriter.getCodeWriter().writeFunction(this.operation, this.name,this.curNumber);
         }
-        return false;
-    }
-
-    /**
-     * check for a return operation
-     * @return return true if it was a return operation else return false
-     */
-    private boolean parseReturnOperation() {
-        this.curMatcher = RETURN_PATTERN.matcher(curLine);
-        if (this.curMatcher.find()) { //check for a return operation
-            this.operation = this.curLine.substring(this.curMatcher.start(), this.curMatcher.end());
-            return true;
+        else{ //if the operation was return
+            CodeWriter.getCodeWriter().writeReturn(this.operation, this.name,this.curNumber);
         }
-        return false;
     }
 }
