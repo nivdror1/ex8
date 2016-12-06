@@ -1,3 +1,5 @@
+import org.omg.CosNaming.NamingContextExtPackage.StringNameHelper;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -12,7 +14,7 @@ import java.lang.String;
  */
 public class CodeWriter {
 
-    /** logic operations*/
+    /** arithmetic operations*/
     private static final String ADD= "add";
     private static final String SUB="sub";
     private static final String EQ="eq";
@@ -27,13 +29,17 @@ public class CodeWriter {
 
     /** the memory segment*/
     private static final String CONSTANT= "constant";
-    private static final String LOCAL= "LOCAL";
-    private static final String ARGUMENT= "ARGUMENT";
+    private static final String LOCAL= "local";
+    private static final String ARGUMENT= "argument";
     private static final String THAT= "that";
     private static final String THIS= "this";
     private static final String POINTER= "pointer";
     private static final String STATIC= "static";
     private static final String TEMP= "temp";
+
+    /**program control operations*/
+    private static final String IF_GOTO="if-goto";
+    private static final String GOTO ="goto";
 
 
     public enum AssemblyFunction {
@@ -65,15 +71,17 @@ public class CodeWriter {
     private HashMap<AssemblyFunction, String>	codeFileMap;
 
     /** a label counter*/
-
     private int labelCounter;
 
+    /** a hash map that contain the label and there addresses*/
+    private HashMap<String, String> labelMap;
 
     /** a singleton constructor*/
     private CodeWriter(){
         this.asmLines= new ArrayList<>();
         labelCounter = 0;
         codeFileMap = new HashMap<>();
+        labelMap= new HashMap<>();
         addFunctionsToHashMap();
     }
 
@@ -596,7 +604,7 @@ public class CodeWriter {
         codeFileMap.put(AssemblyFunction.CopyAToR13, dirPath + "\\CopyAToR13.asm");
         codeFileMap.put(AssemblyFunction.CopyAToR14, dirPath + "\\CopyAToR14.asm");
         codeFileMap.put(AssemblyFunction.CopyFromR13ToRamAddressInR14, dirPath + "\\CopyFromR13ToRamAddressInR14.asm");
-        codeFileMap.put(AssemblyFunction.CopyFromR13ToRamAddressInR14, dirPath + "\\CopyFromR13ToRamAddressInR14.asm");
+        codeFileMap.put(AssemblyFunction.CopyFromRamAddressInR14ToR13, dirPath + "\\CopyFromRamAddressInR14ToR13.asm");
         codeFileMap.put(AssemblyFunction.LoadArgumentAddressToA, dirPath + "\\LoadArgumentAddressToA.asm");
         codeFileMap.put(AssemblyFunction.LoadLocalAddressToA,  dirPath + "\\LoadLocalAddressToA.asm");
         codeFileMap.put(AssemblyFunction.LoadStackAddressToA, dirPath + "\\LoadStackAddressToA.asm");
@@ -609,4 +617,62 @@ public class CodeWriter {
         codeFileMap.put(AssemblyFunction.AdvanceStack, dirPath + "\\AdvanceStack.asm");
     }
 
+    /**
+     * write the program flow operations
+     * @param operation a string that represent the operation
+     * @param name a name
+     */
+    public void writeProgramFlow(String operation ,String name){
+        switch(operation){
+            case IF_GOTO:
+                writeIf(name);
+                break;
+            case GOTO:
+                writeGoto(name);
+                break;
+            default:
+                writeLabel(name);
+                break;
+        }
+    }
+
+    /**
+     * write a conditional jump , if the result isn't zero jump else continue to the next instruction
+     * @param name a label name for the jump
+     */
+    private void writeIf(String name){
+        asm("// if_goto");
+        writeFunctionFromFile(AssemblyFunction.PopToD);
+        asm("@"+name);
+        asm("D;JNE");
+        asm("// end if_goto");
+    }
+
+    /**
+     * write a unconditional jump
+     * @param name a label name for the jump
+     */
+    private void writeGoto(String name){
+        asm("//goto");
+        asm("@"+name);
+        asm("0;JMP");
+        asm("// end goto");
+    }
+
+    /**
+     * write in asm the label definition
+     * @param name the label name
+     */
+    private void writeLabel(String name){
+        asm("// add label");
+        asm("("+name+")");
+
+    }
+
+    public void writeFunction(String operation, String name,int number){
+
+    }
+    public void writeReturn (String operation, String name,int number){
+
+    }
 }

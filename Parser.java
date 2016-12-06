@@ -34,6 +34,8 @@ public class Parser {
     private static final String ARITHMETIC ="\\b(add|sub|neg|eq|gt|lt|and|or|not)\\b";
     private static final Pattern ARITHMETIC_PATTERN= Pattern.compile(ARITHMETIC);
 
+    private static final String FUNCTION_LABEL_DIFFER="$";
+
     /** A string that represent the current memory address*/
     private String curMemory;
     /** A string that represent the current number being processed*/
@@ -48,10 +50,12 @@ public class Parser {
     private String curLine;
     /** a string that represent a name*/
     private String name;
+    /** a string that represent a function name*/
+    private String function;
 
     /** a constructor*/
     public Parser(){
-        this.name=this.operation=this.curMemory="";
+        this.name=this.operation=this.curMemory=this.name=this.function="";
         this.vmLines= new ArrayList<>();
 
     }
@@ -74,7 +78,7 @@ public class Parser {
             {
                 signifyMemorySegment(); //check which memory segment
                 insertDecimalNumber(); //assign a decimal number
-                CodeWriter.getCodeWriter().translate(this.operation,
+                CodeWriter.getCodeWriter().writePushPop(this.operation,
                         this.curMemory,this.curNumber); //translate the operation
             }
             else if(parseArithmetic())
@@ -84,6 +88,7 @@ public class Parser {
             else{
                 programControlOperations(); // parse the program control operations
             }
+            resetDataMembers();
         }
     }
 
@@ -193,12 +198,17 @@ public class Parser {
      */
     private void programControlOperations(){
         signifyOperation(); // check for the operation
-        if(this.operation.equals(PROGRAM_FLOW)){ // check for a program flow operation
-            parseName();
+        if(this.operation.matches(PROGRAM_FLOW)){ // check for a program flow operation
+            parseName(); //parse the name with the function name at the start
+            if(this.name==null){
+               this.name=this.function+FUNCTION_LABEL_DIFFER+this.name;
+            }
             CodeWriter.getCodeWriter().writeProgramFlow(this.operation, this.name);
-        }else if(this.operation.equals(FUNCTION_OR_CALL))
+        }
+        else if(this.operation.equals(FUNCTION_OR_CALL))
         {  //check for a declaration of a function or a function call
             parseName(); //parse the function name and the number of arguments
+            this.function=this.name;
             if(insertDecimalNumber()){
                 this.curNumber=0;
             }
@@ -207,5 +217,13 @@ public class Parser {
         else{ //if the operation was return
             CodeWriter.getCodeWriter().writeReturn(this.operation, this.name,this.curNumber);
         }
+    }
+
+    /**
+     * reset the data member before going to another vm line
+     */
+    private void resetDataMembers(){
+        this.name=this.operation=this.curMemory=this.name="";
+        this.function=null;
     }
 }
