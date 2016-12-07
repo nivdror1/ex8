@@ -41,6 +41,7 @@ public class CodeWriter {
     private static final String IF_GOTO="if-goto";
     private static final String GOTO ="goto";
 
+    private static final String FUNCTION ="function";
 
     public enum AssemblyFunction {
         CopyAToR13,
@@ -669,10 +670,45 @@ public class CodeWriter {
 
     }
 
-    public void writeFunction(String operation, String name,int number){
-
+    /**
+     * signify which operation is it - a function declaration or a function call
+     * @param operation a string that represent the operation
+     * @param name the function name
+     * @param numLocal the number of local variables
+     */
+    public void writeFunctionOrCall(String operation, String name,int numLocal){
+        switch(operation){
+            case FUNCTION:
+                writeFunction(name, numLocal); //write a function declaration
+                break;
+            default:
+                break;
+        }
     }
     public void writeReturn (String operation, String name,int number){
 
     }
+
+    /**
+     * write a function declaration
+     * @param name the function name
+     * @param numLocal the number of local variables
+     */
+    private void writeFunction(String name, int numLocal){
+        asm("// function declaration");
+        asm("("+name+")");
+        for(int i=0;i<numLocal;i++){
+            asm("D=0"); //set d to zero
+            // set a local address to A register
+            writeFunctionFromFile(AssemblyFunction.LoadLocalAddressToA);
+
+            if(i>0){
+                asm("A=A+"+i);
+            }
+            asm("M=D");
+            //push D into the global stack
+            writeFunctionFromFile(AssemblyFunction.PushD);
+        }
+        asm("// end function declaration");
+}
 }

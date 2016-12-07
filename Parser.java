@@ -20,7 +20,7 @@ public class Parser {
     private static final Pattern OPERATION_PATTERN=Pattern.compile(OPERATION);
 
     private static final String PROGRAM_FLOW= "\\b(label|goto|if-goto)\\b";
-    private static final String NAME ="[a-zA-Z]{1}\\w*+";
+    private static final String NAME ="[a-zA-Z]{1}\\w*+(\\.\\w++)?";
     private static final Pattern NAME_PATTERN= Pattern.compile(NAME);
 
     private static final String FUNCTION_OR_CALL= "\\b(call|function)\\b";
@@ -205,14 +205,14 @@ public class Parser {
             }
             CodeWriter.getCodeWriter().writeProgramFlow(this.operation, this.name);
         }
-        else if(this.operation.equals(FUNCTION_OR_CALL))
+        else if(this.operation.matches(FUNCTION_OR_CALL))
         {  //check for a declaration of a function or a function call
             parseName(); //parse the function name and the number of arguments
             this.function=this.name;
-            if(insertDecimalNumber()){
+            if(!insertDecimalNumber()){
                 this.curNumber=0;
             }
-            CodeWriter.getCodeWriter().writeFunction(this.operation, this.name,this.curNumber);
+            CodeWriter.getCodeWriter().writeFunctionOrCall(this.operation, this.name,this.curNumber);
         }
         else{ //if the operation was return
             CodeWriter.getCodeWriter().writeReturn(this.operation, this.name,this.curNumber);
