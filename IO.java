@@ -1,4 +1,4 @@
-
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
@@ -9,12 +9,12 @@ public class IO {
     private static final String UNREADABLE_FILE= "file could not been read";
     private static final String UNWRITTENABLE_FILE= "file could not been written into";
     private static final String FILE_NOT_EXISTS = "enter another file, since the path was wrong";
-    private static final String ASM = "asm";
+    private static final String ASM = ".asm";
     private static final String DOT = "\\w++\\.";
     private static final String VM= DOT+"vm";
     private static final Pattern VM_PATTERN =Pattern.compile(VM);
-    private static final int TWO=2;
-    private static final String NEW_LINE="\n";
+    private static final int THREE =3;
+    private static final String SLASH="\\";
 
 
     /**
@@ -26,7 +26,7 @@ public class IO {
         {
             //check if it is a file or a directory and get all the appropriate files
             ArrayList<File> vmList =fileOrDirectory(file);
-            String outputFileName = setOutputFileName(vmList.get(0).getAbsolutePath());
+            String outputFileName = setOutputFileName(vmList.size(),file);
 
             readAllVmFiles(vmList);
             writeToASingleAsmFile(outputFileName);
@@ -36,14 +36,21 @@ public class IO {
     }
 
     /**
-     * get the name of the asm file and exchange it to hack file
-     *
-     * @param inputFileName the input file name
-     * @return the file name but with a suffix of a hack file
+     * get the name of the asm file and exchange it to asm file
+     * @param fileCount the number of files to parse
+     * @param file the input file
+     * @return the file name but with a suffix of a asm file
      */
-    private static String setOutputFileName(String inputFileName) {
-        inputFileName=inputFileName.substring(0,inputFileName.length()-TWO);
-        return inputFileName+ASM;
+    private static String setOutputFileName(int fileCount, File file ) {
+        String location= file.getAbsolutePath();
+        if(fileCount==1){ // if the there is only one file
+            location=location.substring(0,location.length()-THREE);
+            location+= ASM;
+        }
+        else{ //if it is a directory
+            location+=SLASH+file.getName()+ASM;
+        }
+        return location;
     }
 
     /**
@@ -116,7 +123,7 @@ public class IO {
 
             //write the binary code to an output file
             for (int i = 0; i < CodeWriter.getCodeWriter().getAsmLines().size(); i++) {
-                writer.write(CodeWriter.getCodeWriter().getAsmLines().get(i) + NEW_LINE);
+                writer.write(CodeWriter.getCodeWriter().getAsmLines().get(i) + "\n");
             }
         }catch(IOException e2){
             System.out.println(UNWRITTENABLE_FILE);
