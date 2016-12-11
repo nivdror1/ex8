@@ -1,0 +1,43 @@
+    private void writeCopyFromAddressInRxToRx2(int x, int x2){
+    	/*
+    	 * @x
+    	 * A=M
+    	 * D=M		// variable in D!!
+    	 * @x2
+    	 * M=D
+    	 * 	finito!
+    	 */
+    	asmLines.add("@" + String.valueOf(x));
+    	asmLines.add("A=M");
+    	asmLines.add("D=M");
+    	asmLines.add("@" + String.valueOf(x2));
+    	asmLines.add("M=D");
+
+    }
+
+    private void writeCopyFromRxToAddressIsInRx2(int x, int x2){
+    	/*
+    	 * @x
+    	 * D=M
+    	 * @x2
+    	 * M=D
+    	 */
+    	if((x<13)||(x>15)||(x2<13)||(x2>15)){
+    		System.out.println("error! using R[13-15] , x wrong");
+    	}
+    	asmLines.add("@" + String.valueOf(x));
+    	asmLines.add("D=M");
+    	asmLines.add("@" + String.valueOf(x2));
+    	asmLines.add("A=M");
+    	asmLines.add("M=D");    	
+    }
+
+
+        /*this.segmentBaseMap = new HashMap<String, Integer>(100);
+        segmentBaseMap.put("local", 1);
+        segmentBaseMap.put("argument", 2);
+        segmentBaseMap.put("this", 3);
+        segmentBaseMap.put("that", 4);
+        segmentBaseMap.put("pointer", 3);
+        segmentBaseMap.put("temp", 5);
+        segmentBaseMap.put("static", 16);*/
