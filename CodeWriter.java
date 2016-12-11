@@ -82,6 +82,8 @@ public class CodeWriter {
     private int lineCounter;
     
     private int returnCounter;
+    
+    private boolean containSysInit = false;
 
     /** a hash map that contain the label and there addresses*/
     private HashMap<String, String> labelMap;
@@ -97,7 +99,7 @@ public class CodeWriter {
         addFunctionsToHashMap();
     }
 
-
+    
     /**
      * get the instance of CodeWriter
      * @return return codeWriter
@@ -770,6 +772,11 @@ public class CodeWriter {
      * @param numLocal the number of local variables
      */
     private void writeFunction(String name, int numLocal){
+    	
+    	if (name.equals("Sys.init")){
+    		this.containSysInit = true;
+    	}
+    	
         asm("// ---function declaration---");
         asm("("+name+")");
         for(int i=0;i<numLocal;i++){/*
@@ -916,7 +923,7 @@ public class CodeWriter {
     	asm("@LCL");
     	asm("D=M");
 
-    	asm("@FRAME");
+    	asm("@R14");
     	asm("M=D");
 
     	asm("@5");
@@ -927,12 +934,20 @@ public class CodeWriter {
 
     	// ----------------------
     	asm("// manage returned value");
-    	writeFunctionFromFile(AssemblyFunction.LoadArgumentAddressToA);
-    	writeFunctionFromFile(AssemblyFunction.CopyAToR14);
     	
     	writeFunctionFromFile(AssemblyFunction.PopR13);
-    	writeFunctionFromFile(AssemblyFunction.CopyFromR13ToRamAddressInR14);
-    	
+    	asm("@R13");
+    	asm("D=M");
+    	writeFunctionFromFile(AssemblyFunction.LoadArgumentAddressToA);
+    	asm("M=D");
+    	/*
+    	 * @R13
+    	 * D=A
+    	 * 
+    	 * LoadArgumentAddressToA
+    	 * M=D
+    	 */
+    	    	
     	asm("// restore SP" + this.lineCounter);
     	asm("@ARG");
     	asm("D=M+1");
@@ -940,41 +955,63 @@ public class CodeWriter {
     	asm("M=D");
     	
     	asm("// restore THAT" + this.lineCounter);
-    	asm("@FRAME");
+    	asm("@R14");
     	asm("M=M-1");
     	asm("A=M");
     	asm("D=M");
-    	writeFunctionFromFile(AssemblyFunction.PushD);
-    	writePopAddresses(THAT);
+    	
+    	asm("@THAT");
+    	asm("M=D");
+    	//writeFunctionFromFile(AssemblyFunction.PushD);
+    	//writePopAddresses(THAT);
 
     	
     	asm("// restore THIS");
-    	asm("@FRAME");
+    	asm("@R14");
     	asm("M=M-1");
     	asm("A=M");
     	asm("D=M");
-    	writeFunctionFromFile(AssemblyFunction.PushD);
-    	writePopAddresses(THIS);
+//    	writeFunctionFromFile(AssemblyFunction.PushD);
+  //  	writePopAddresses(THIS);
+    	asm("@THIS");
+    	asm("M=D");
     	
     	asm("// restore ARG");
-    	asm("@FRAME");
+    	asm("@R14");
     	asm("M=M-1");
     	asm("A=M");
     	asm("D=M");
-    	writeFunctionFromFile(AssemblyFunction.PushD);
-    	writePopAddresses(ARGUMENT);
+  //  	writeFunctionFromFile(AssemblyFunction.PushD);
+    //	writePopAddresses(ARGUMENT);
+    	asm("@ARG");
+    	asm("M=D");
     	
     	asm("// restore local");
-    	asm("@FRAME");
+    	asm("@R14");
     	asm("M=M-1");
     	asm("A=M");
     	asm("D=M");
-    	writeFunctionFromFile(AssemblyFunction.PushD);
-    	writePopAddresses(LOCAL);
+    	//writeFunctionFromFile(AssemblyFunction.PushD);
+    	//writePopAddresses(LOCAL);
+    	asm("@LCL");
+    	asm("M=D");
     	
     	asm("@R15");
     	asm("A=M");
     	asm("0; JMP");
     	
     }
+    public void startFile(){
+    	asm("@Sys.init");
+    	asm("0; JMP");
+    	
+    }
+    
+    public void closeFile(){
+    	if(!this.containSysInit){
+    		this.asmLines.set(0, "@0");
+    		this.asmLines.set(1, "@0");
+    	}
+    }
+
 }
