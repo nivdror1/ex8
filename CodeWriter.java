@@ -28,6 +28,7 @@ public class CodeWriter {
     private static final String POP="pop";
 
     /** the memory segment*/
+    private static final String SP = "SP";
     private static final String CONSTANT= "constant";
     private static final String LOCAL= "local";
     private static final String ARGUMENT= "argument";
@@ -42,6 +43,9 @@ public class CodeWriter {
     private static final String GOTO ="goto";
 
     private static final String FUNCTION ="function";
+    
+    /**	other	*/
+    private static final String SPACE="\\s";
 
     public enum AssemblyFunction {
         CopyAToR13,
@@ -73,6 +77,13 @@ public class CodeWriter {
 
     /** a label counter*/
     private int labelCounter;
+    
+    /**     * a line counter     */
+    private int lineCounter;
+    
+    private int returnCounter;
+    
+    private boolean containSysInit = false;
 
     /** a hash map that contain the label and there addresses*/
     private HashMap<String, String> labelMap;
@@ -81,12 +92,14 @@ public class CodeWriter {
     private CodeWriter(){
         this.asmLines= new ArrayList<>();
         labelCounter = 0;
+        lineCounter = 0;
+        returnCounter = 0;
         codeFileMap = new HashMap<>();
         labelMap= new HashMap<>();
         addFunctionsToHashMap();
     }
 
-
+    
     /**
      * get the instance of CodeWriter
      * @return return codeWriter
@@ -318,6 +331,59 @@ public class CodeWriter {
         }
     }
 
+    /**
+     * push the ~content~ of the SP/ARG/LOCAL/THIS/THAT
+     * == push from R0-R4
+     * @return 
+     */
+    void writePushAddresses(String segment){
+    	switch (segment){
+    	case SP:
+    		asm("@SP");
+    		break;
+    	case LOCAL:
+        	asm("@LCL");
+    		break;
+    	case ARGUMENT:
+    		asm("@ARG");
+    		break;
+    	case THIS:
+    		asm("@THIS");
+    		break;
+    	case THAT:
+    		asm("@THAT");
+    		break;
+    	}
+    	asm("A=M");
+        writeFunctionFromFile(AssemblyFunction.CopyAToR13);
+        writeFunctionFromFile(AssemblyFunction.PushR13);
+    }
+
+    /**
+     * pop to R0-R4
+     * @param segment
+     */
+    void writePopAddresses(String segment){
+    	writeFunctionFromFile(AssemblyFunction.PopToD);
+    	switch (segment){
+    	case SP:
+    		asm("@SP");
+    		break;
+    	case LOCAL:
+        	asm("@LCL");
+    		break;
+    	case ARGUMENT:
+    		asm("@ARG");
+    		break;
+    	case THIS:
+    		asm("@THIS");
+    		break;
+    	case THAT:
+    		asm("@THAT");
+    		break;
+    	}
+    	asm("M=D");
+    }
     //todo i dont understand what the function does, so omri please document this function
     private void pushSub_arg_const_this_that(){
         asm("A=A+D");
@@ -397,7 +463,15 @@ public class CodeWriter {
      * add an asm line to asmLines
      */
     private void asm(String asmLine){
-        this.asmLines.add(asmLine);
+        this.asmLines.add(asmLine + "//" + this.lineCounter);
+        //	increment lineCounter
+        String cleanLine = asmLine.replaceAll(SPACE,""); 
+        if (!(	(cleanLine.charAt(0) == '/') ||
+        		(cleanLine.charAt(0) == '(') ||
+        		(cleanLine.length() == 0)		)){
+        	// count line
+        	this.lineCounter ++ ;
+        }
     }
 
     /**
@@ -681,23 +755,31 @@ public class CodeWriter {
             case FUNCTION:
                 writeFunction(name, numLocal); //write a function declaration
                 break;
+            case "call":
+            	writeCall(name, numLocal);
             default:
                 break;
         }
     }
     public void writeReturn (String operation, String name,int number){
-
+    	writeReturn2();
     }
 
     /**
      * write a function declaration
+     * hay niv, there is some assembly problem here. i changed it a bit.
      * @param name the function name
      * @param numLocal the number of local variables
      */
     private void writeFunction(String name, int numLocal){
-        asm("// function declaration");
+    	
+    	if (name.equals("Sys.init")){
+    		this.containSysInit = true;
+    	}
+    	
+        asm("// ---function declaration---");
         asm("("+name+")");
-        for(int i=0;i<numLocal;i++){
+        for(int i=0;i<numLocal;i++){/*
             asm("D=0"); //set d to zero
             // set a local address to A register
             writeFunctionFromFile(AssemblyFunction.LoadLocalAddressToA);
@@ -707,8 +789,229 @@ public class CodeWriter {
             }
             asm("M=D");
             //push D into the global stack
+             */
+        	asm("@0");
+        	asm("D=A");
             writeFunctionFromFile(AssemblyFunction.PushD);
         }
-        asm("// end function declaration");
+        asm("// ---end function declaration---");
 }
+    private void writeCall(String functionName, int argc){
+    	String returnSymbol = "@" + "return" + returnCounter;
+    	String returnLabel = "(" + "return" + returnCounter + ")";
+    	returnCounter++;
+    	
+    	asm("// ----- call " + functionName + "  Line number = " + this.lineCounter);
+    	
+    	//int numOfRowsUntilGoto = 0;	//TODO
+    	//writePushToConstant(numOfRowsUntilGoto);
+    	asm(returnSymbol);
+    	asm("D=A");
+    	writeFunctionFromFile(AssemblyFunction.PushD);
+    	
+    	
+    	asm("// push LCL");
+    	writePushAddresses(LOCAL);
+        
+    	asm("// push ARG");
+    	writePushAddresses(ARGUMENT);      
+        
+    	asm("// push THIS");
+        writePushAddresses(THIS);
+    	
+    	asm("// push THAT");
+        writePushAddresses(THAT);
+        
+        asm("// ARG = SP - n - 5");
+        
+        asm("// load and push SP");
+        writeFunctionFromFile(AssemblyFunction.LoadStackAddressToA);
+        writeFunctionFromFile(AssemblyFunction.CopyAToR13);
+        writeFunctionFromFile(AssemblyFunction.PushR13);
+        
+        asm("// push n; push 5; add");
+        writePushToConstant(5);
+        writePushToConstant(argc);
+        writeAdd();
+        asm("// sub");
+        writeSub();
+        asm("// pop to ARG");
+        writeFunctionFromFile(AssemblyFunction.PopToD);
+        asm("@ARG");
+        asm("M=D");
+        
+        asm("@SP");
+        asm("D=M");
+        asm("@LCL");
+        asm("M=D");
+
+        /*asm("// LCL = SP");
+        writeFunctionFromFile(AssemblyFunction.LoadStackAddressToA);
+        asm("D=M");
+        asm("@LCL");
+        asm("M=D");
+        */
+               
+        
+        
+    	// goto f
+    	asm("@" + functionName);
+    	asm("0; JMP");
+    	asm(returnLabel);
+    }
+    
+    private void writeReturn2(){
+    	/*
+    	 *  
+    	 * @LCL
+    	 * D=M
+    	 * 
+    	 * @frame
+    	 * M=D
+    	 * 
+    	 * A=D-5
+    	 * D=M
+    	 * @R15
+    	 * M=D
+    	 * ----------------------------
+    	 * load ARG address to A
+    	 * Copy A to R14
+    	 * 
+    	 * popToR13
+    	 * copyR13 to address in r14
+    	 * 
+    	 * ** *ARG = pop() - finished
+    	 * ** SP=ARG+1
+    	 * @ARG
+    	 * D=A+1
+    	 * @SP
+    	 * M=D
+    	 * 
+    	 * @frame
+    	 * M=M-1
+    	 * D=M
+    	 * PushD
+    	 * PopAddressToThat
+    	 * 
+    	 * @frame
+    	 * M=M-1
+    	 * D=M
+    	 * PushD
+    	 * PopAddressToThis
+    	 * 
+    	 * 
+    	 * @frame
+    	 * M=M-1
+    	 * D=M
+    	 * PushD
+    	 * PopAddressToArgument
+    	 * 
+    	 * @frame
+    	 * M=M-1
+    	 * D=M
+    	 * PushD
+    	 * PopAddressToLocal // frame is nothing now! couse local has changed
+    	 * 
+    	 * @R15
+    	 * A=M
+    	 * 0; JMP
+    	 * 
+    	 * 
+    	 */
+    	asm("//----------------- return! ---------------");
+    	//----------------------
+    	asm("@LCL");
+    	asm("D=M");
+
+    	asm("@R14");
+    	asm("M=D");
+
+    	asm("@5");
+    	asm("A=D-A");
+    	asm("D=M");
+    	asm("@R15");
+    	asm("M=D");
+
+    	// ----------------------
+    	asm("// manage returned value");
+    	
+    	writeFunctionFromFile(AssemblyFunction.PopR13);
+    	asm("@R13");
+    	asm("D=M");
+    	writeFunctionFromFile(AssemblyFunction.LoadArgumentAddressToA);
+    	asm("M=D");
+    	/*
+    	 * @R13
+    	 * D=A
+    	 * 
+    	 * LoadArgumentAddressToA
+    	 * M=D
+    	 */
+    	    	
+    	asm("// restore SP" + this.lineCounter);
+    	asm("@ARG");
+    	asm("D=M+1");
+    	asm("@SP");
+    	asm("M=D");
+    	
+    	asm("// restore THAT" + this.lineCounter);
+    	asm("@R14");
+    	asm("M=M-1");
+    	asm("A=M");
+    	asm("D=M");
+    	
+    	asm("@THAT");
+    	asm("M=D");
+    	//writeFunctionFromFile(AssemblyFunction.PushD);
+    	//writePopAddresses(THAT);
+
+    	
+    	asm("// restore THIS");
+    	asm("@R14");
+    	asm("M=M-1");
+    	asm("A=M");
+    	asm("D=M");
+//    	writeFunctionFromFile(AssemblyFunction.PushD);
+  //  	writePopAddresses(THIS);
+    	asm("@THIS");
+    	asm("M=D");
+    	
+    	asm("// restore ARG");
+    	asm("@R14");
+    	asm("M=M-1");
+    	asm("A=M");
+    	asm("D=M");
+  //  	writeFunctionFromFile(AssemblyFunction.PushD);
+    //	writePopAddresses(ARGUMENT);
+    	asm("@ARG");
+    	asm("M=D");
+    	
+    	asm("// restore local");
+    	asm("@R14");
+    	asm("M=M-1");
+    	asm("A=M");
+    	asm("D=M");
+    	//writeFunctionFromFile(AssemblyFunction.PushD);
+    	//writePopAddresses(LOCAL);
+    	asm("@LCL");
+    	asm("M=D");
+    	
+    	asm("@R15");
+    	asm("A=M");
+    	asm("0; JMP");
+    	
+    }
+    public void startFile(){
+    	asm("@Sys.init");
+    	asm("0; JMP");
+    	
+    }
+    
+    public void closeFile(){
+    	if(!this.containSysInit){
+    		this.asmLines.set(0, "@0");
+    		this.asmLines.set(1, "@0");
+    	}
+    }
+
 }
