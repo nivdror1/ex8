@@ -1002,16 +1002,20 @@ public class CodeWriter {
     	
     }
     public void startFile(){
-    	asm("@Sys.init");
-    	asm("0; JMP");
+    	asm("@256");
+    	asm("D=A");
+    	asm("@SP");
+    	asm("M=D");
+    	writeCall("Sys.init", 0);
+
     	
     }
     
     public void closeFile(){
-    	if(!this.containSysInit){
-    		this.asmLines.set(0, "@0");
-    		this.asmLines.set(1, "@0");
-    	}
+    	/*if(!this.containSysInit){
+    		for(int i = 0; i <= 121; i++)
+    			this.asmLines.set(i, "@0");
+    	}*/
     }
 
 }
