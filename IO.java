@@ -43,7 +43,7 @@ public class IO {
      */
     private static String setOutputFileName(int fileCount, File file ) {
         String location= file.getAbsolutePath();
-        if(fileCount==1){ // if the there is only one file
+        if(fileCount== 1){ // if the there is only one file
             location=location.substring(0,location.length()-THREE);
             location+= ASM;
         }
