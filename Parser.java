@@ -11,6 +11,8 @@ public class Parser {
     private static final String EMPTY_LINE= "^\\s*+$";
     private static final Pattern EMPTY_LINE_PATTERN= Pattern.compile(EMPTY_LINE);
     private static final Pattern COMMENT_PATTERN= Pattern.compile(ONE_LINER_COMMENT);
+    private static final String DOT ="//.";
+    private static final Pattern DOT_PATTERN= Pattern.compile(DOT);
 
     private static final String PUSH_AND_POP ="\\b(push|pop)\\b";
     private static final Pattern PUSH_AND_POP_PATTERN = Pattern.compile(PUSH_AND_POP);
@@ -25,7 +27,7 @@ public class Parser {
 
     private static final String FUNCTION_OR_CALL= "\\b(call|function)\\b";
 
-    private static final String MEMORY= "\\b(constant|local|argument|this|that|pointer|temp)\\b";
+    private static final String MEMORY= "\\b(constant|local|argument|this|that|pointer|temp|static)\\b";
     private static final Pattern MEMORY_PATTERN= Pattern.compile(MEMORY);
 
     private static final String DECIMAL_NUMBER = "\\d++";
@@ -52,6 +54,8 @@ public class Parser {
     private String name;
     /** a string that represent a function name*/
     private String function;
+
+    private String curClass;
 
     /** a constructor*/
     public Parser(){
@@ -209,10 +213,12 @@ public class Parser {
         {  //check for a declaration of a function or a function call
             parseName(); //parse the function name and the number of arguments
             this.function=this.name;
+            parseClassName();
             if(!insertDecimalNumber()){
                 this.curNumber=0;
             }
-            CodeWriter.getCodeWriter().writeFunctionOrCall(this.operation, this.name,this.curNumber);
+            CodeWriter.getCodeWriter().writeFunctionOrCall(this.operation, this.name,
+                    this.curNumber,this.curClass);
         }
         else{ //if the operation was return
             CodeWriter.getCodeWriter().writeReturn(this.operation, this.name,this.curNumber);
@@ -225,5 +231,12 @@ public class Parser {
     private void resetDataMembers(){
         this.name=this.operation=this.curMemory=this.name="";
         this.function=null;
+    }
+
+    private void parseClassName(){
+        this.curMatcher=DOT_PATTERN.matcher(this.function);
+        if(this.curMatcher.find()){
+            this.curClass= this.function.substring(0,this.curMatcher.end()-1);
+        }
     }
 }

@@ -43,6 +43,7 @@ public class CodeWriter {
     private static final String GOTO ="goto";
 
     private static final String FUNCTION ="function";
+    private static final String CALL ="call";
     
     /**	other	*/
     private static final String SPACE="\\s";
@@ -85,8 +86,11 @@ public class CodeWriter {
     
     private boolean containSysInit = false;
 
-    /** a hash map that contain the label and there addresses*/
-    private HashMap<String, String> labelMap;
+    private int staticCounter =0,staticAddress=16;
+
+    private String curClass;
+
+    private HashMap<String, Integer> classesMap;
 
     /** a singleton constructor*/
     private CodeWriter(){
@@ -95,8 +99,9 @@ public class CodeWriter {
         lineCounter = 0;
         returnCounter = 0;
         codeFileMap = new HashMap<>();
-        labelMap= new HashMap<>();
         addFunctionsToHashMap();
+        this.curClass="Main";
+        this.classesMap= new HashMap<>();
     }
 
     
@@ -504,7 +509,7 @@ public class CodeWriter {
         asm("//// ----- push static -------");
         asm("@" + String.valueOf(arg2));
         asm("D=A");
-        asm("@16");
+        asm("@"+staticAddress);
         pushSub_arg_const_this_that();
         asm("//// ----- push static end-------");
     }
@@ -633,12 +638,14 @@ public class CodeWriter {
         asm("//// -- pop static -- ");
         asm("@" + String.valueOf(address));
         asm("D=A");
-        asm("@16");
+        asm("@"+staticAddress);
         asm("A=D+A");
         writeFunctionFromFile(AssemblyFunction.CopyAToR14);
         writeFunctionFromFile(AssemblyFunction.PopR13);
         writeFunctionFromFile(AssemblyFunction.CopyFromR13ToRamAddressInR14);
         asm("//// -- pop static end -- ");
+        staticCounter++;
+
     }
     /**
      * write pop to the local segment
@@ -750,12 +757,15 @@ public class CodeWriter {
      * @param name the function name
      * @param numLocal the number of local variables
      */
-    public void writeFunctionOrCall(String operation, String name,int numLocal){
+    public void writeFunctionOrCall(String operation, String name,int numLocal, String newModule){
+        if(newModule!= this.curClass){
+            setStaticAddress(newModule);
+        }
         switch(operation){
             case FUNCTION:
                 writeFunction(name, numLocal); //write a function declaration
                 break;
-            case "call":
+            case CALL:
             	writeCall(name, numLocal);
             default:
                 break;
@@ -779,17 +789,7 @@ public class CodeWriter {
     	
         asm("// ---function declaration---");
         asm("("+name+")");
-        for(int i=0;i<numLocal;i++){/*
-            asm("D=0"); //set d to zero
-            // set a local address to A register
-            writeFunctionFromFile(AssemblyFunction.LoadLocalAddressToA);
-
-            if(i>0){
-                asm("A=A+"+i);
-            }
-            asm("M=D");
-            //push D into the global stack
-             */
+        for(int i=0;i<numLocal;i++){
         	asm("@0");
         	asm("D=A");
             writeFunctionFromFile(AssemblyFunction.PushD);
@@ -1018,4 +1018,13 @@ public class CodeWriter {
     	}*/
     }
 
+    private void setStaticAddress(String curClass){
+        if(!this.classesMap.containsKey(curClass)){
+            this.staticAddress+=this.staticCounter;
+            this.classesMap.put(curClass,this.staticAddress); //todo change the name of classesMap
+        }
+        else{
+            this.staticAddress=this.classesMap.get(curClass);
+        }
+    }
 }

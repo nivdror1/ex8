@@ -26,7 +26,7 @@ public class IO {
         {
             //check if it is a file or a directory and get all the appropriate files
             ArrayList<File> vmList =fileOrDirectory(file);
-            String outputFileName = setOutputFileName(vmList.size(),file);
+            String outputFileName = setOutputFileName(file);
 
             readAllVmFiles(vmList);
             writeToASingleAsmFile(outputFileName);
@@ -37,13 +37,12 @@ public class IO {
 
     /**
      * get the name of the asm file and exchange it to asm file
-     * @param fileCount the number of files to parse
      * @param file the input file
      * @return the file name but with a suffix of a asm file
      */
-    private static String setOutputFileName(int fileCount, File file ) {
+    private static String setOutputFileName( File file ) {
         String location= file.getAbsolutePath();
-        if(fileCount== 1){ // if the there is only one file
+        if(file.isFile()){ // if the there is only one file
             location=location.substring(0,location.length()-THREE);
             location+= ASM;
         }
@@ -100,6 +99,7 @@ public class IO {
      * @param vmList an arrat list of vm files
      */
     private static void readAllVmFiles(ArrayList <File> vmList){
+        CodeWriter.getCodeWriter().startFile();
         for (int j=0;j<vmList.size();j++) {
             try (FileReader vmFile = new FileReader(vmList.get(j));// define the BufferReader and BufferWriter
                  BufferedReader reader = new BufferedReader(vmFile))
