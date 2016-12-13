@@ -54,7 +54,7 @@ public class Parser {
     private String name;
     /** a string that represent a function name*/
     private String function;
-
+    /** a string that represent the current class name*/
     private String className;
 
     /** a constructor*/

@@ -488,6 +488,7 @@ public class CodeWriter {
         writeFunctionFromFile(AssemblyFunction.AdvanceStack);
         asm("//// ----- push static end-------");
     }
+
     /**
      * write push to the "that" segment
      * @param arg2 a data value
@@ -609,6 +610,12 @@ public class CodeWriter {
         writeFunctionFromFile(AssemblyFunction.CopyFromR13ToRamAddressInR14);
         asm("//// -- pop pointer end -- ");
     }
+
+    /**
+     * write pop to the static segment
+     * @param address an address in the memory
+     * @param className the current class name
+     */
     private void writePopToStatic(int address, String className){
         asm("//// -- pop static -- ");
         asm("@" + String.valueOf(address));
@@ -618,9 +625,8 @@ public class CodeWriter {
         writeFunctionFromFile(AssemblyFunction.PopR13);
         writeFunctionFromFile(AssemblyFunction.CopyFromR13ToRamAddressInR14);
         asm("//// -- pop static end -- ");
-
-
     }
+
     /**
      * write pop to the local segment
      * @param address an address in the memory
