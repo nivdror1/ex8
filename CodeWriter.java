@@ -1,5 +1,3 @@
-import org.omg.CosNaming.NamingContextExtPackage.StringNameHelper;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -79,29 +77,20 @@ public class CodeWriter {
     /** a label counter*/
     private int labelCounter;
     
-    /**     * a line counter     */
+    /** a line counter*/
     private int lineCounter;
     
     private int returnCounter;
-    
+
     private boolean containSysInit = false;
 
-    private int staticCounter =0,staticAddress=16;
-
-    private String curClass;
-
-    private HashMap<String, Integer> classesMap;
 
     /** a singleton constructor*/
     private CodeWriter(){
         this.asmLines= new ArrayList<>();
-        labelCounter = 0;
-        lineCounter = 0;
-        returnCounter = 0;
+        labelCounter = lineCounter = returnCounter= 0;
         codeFileMap = new HashMap<>();
         addFunctionsToHashMap();
-        this.curClass="Main";
-        this.classesMap= new HashMap<>();
     }
 
     
@@ -289,14 +278,15 @@ public class CodeWriter {
      * @param operation a string representing the arithmetic operation
      * @param memory a string representing the memory segment
      * @param address a string representing the address
+     * @param className the current class name
      */
-    public void writePushPop(String operation, String memory, int address){
+    public void writePushPop(String operation, String memory, int address, String className){
         // todo is really a address input or data or both?
         if(operation.equals(PUSH)) {
-            writePush(memory, address); //write push
+            writePush(memory, address,className); //write push
         }
         else if(operation.equals(POP)){
-            writePop(memory, address); //write pop
+            writePop(memory, address,className); //write pop
         }
 
     }
@@ -305,8 +295,9 @@ public class CodeWriter {
      * write push according to the memory segment
      * @param memory a string representing the memory segment
      * @param arg2 a data value
+     * @param className the current class name
      */
-    private void writePush(String memory, int arg2){
+    private void writePush(String memory, int arg2, String className){
         switch (memory){
             case CONSTANT:
                 writePushToConstant(arg2);
@@ -330,7 +321,7 @@ public class CodeWriter {
                 writePushToPointer(arg2);
                 break;
             case STATIC:
-                writePushToStatic(arg2);
+                writePushToStatic(arg2,className);
                 break;
 
         }
@@ -339,7 +330,6 @@ public class CodeWriter {
     /**
      * push the ~content~ of the SP/ARG/LOCAL/THIS/THAT
      * == push from R0-R4
-     * @return 
      */
     void writePushAddresses(String segment){
     	switch (segment){
@@ -364,32 +354,7 @@ public class CodeWriter {
         writeFunctionFromFile(AssemblyFunction.PushR13);
     }
 
-    /**
-     * pop to R0-R4
-     * @param segment
-     */
-    void writePopAddresses(String segment){
-    	writeFunctionFromFile(AssemblyFunction.PopToD);
-    	switch (segment){
-    	case SP:
-    		asm("@SP");
-    		break;
-    	case LOCAL:
-        	asm("@LCL");
-    		break;
-    	case ARGUMENT:
-    		asm("@ARG");
-    		break;
-    	case THIS:
-    		asm("@THIS");
-    		break;
-    	case THAT:
-    		asm("@THAT");
-    		break;
-    	}
-    	asm("M=D");
-    }
-    //todo i dont understand what the function does, so omri please document this function
+    //todo i don't understand what the function does, so omri please document this function
     private void pushSub_arg_const_this_that(){
         asm("A=A+D");
         asm("// A have now the address of the data to take from the ram");
@@ -408,8 +373,9 @@ public class CodeWriter {
      * write pop operation in asm language
      * @param memory a string representing the memory segment
      * @param address a string representing the address
+     * @param className the current className
      */
-    private void writePop(String memory, int address){
+    private void writePop(String memory, int address, String className){
         switch (memory){
             case ARGUMENT:
                 writePopToArgument(address);
@@ -430,7 +396,7 @@ public class CodeWriter {
                 writePopToPointer(address);
                 break;
             case STATIC:
-                writePopToStatic(address);
+                writePopToStatic(address,className);
                 break;
             //case (null):
             default:
@@ -504,13 +470,22 @@ public class CodeWriter {
     /**
      * write push to the static segment
      * @param arg2 a data value
+     * @param className the current class name
      */
-    private void writePushToStatic(int arg2){
+    private void writePushToStatic(int arg2,String className){
         asm("//// ----- push static -------");
         asm("@" + String.valueOf(arg2));
         asm("D=A");
-        asm("@"+staticAddress);
-        pushSub_arg_const_this_that();
+        asm("@"+className+arg2);
+        asm("D=M");
+        asm("@R13");
+        asm("M=D");
+        asm("// R13 now have the data");
+
+        writeFunctionFromFile(AssemblyFunction.LoadStackAddressToA);
+        writeFunctionFromFile(AssemblyFunction.CopyAToR14);
+        writeFunctionFromFile(AssemblyFunction.CopyFromR13ToRamAddressInR14);
+        writeFunctionFromFile(AssemblyFunction.AdvanceStack);
         asm("//// ----- push static end-------");
     }
     /**
@@ -634,17 +609,16 @@ public class CodeWriter {
         writeFunctionFromFile(AssemblyFunction.CopyFromR13ToRamAddressInR14);
         asm("//// -- pop pointer end -- ");
     }
-    private void writePopToStatic(int address){
+    private void writePopToStatic(int address, String className){
         asm("//// -- pop static -- ");
         asm("@" + String.valueOf(address));
         asm("D=A");
-        asm("@"+staticAddress);
-        asm("A=D+A");
+        asm("@"+className+address);
         writeFunctionFromFile(AssemblyFunction.CopyAToR14);
         writeFunctionFromFile(AssemblyFunction.PopR13);
         writeFunctionFromFile(AssemblyFunction.CopyFromR13ToRamAddressInR14);
         asm("//// -- pop static end -- ");
-        staticCounter++;
+
 
     }
     /**
@@ -757,10 +731,8 @@ public class CodeWriter {
      * @param name the function name
      * @param numLocal the number of local variables
      */
-    public void writeFunctionOrCall(String operation, String name,int numLocal, String newModule){
-        if(newModule!= this.curClass){
-            setStaticAddress(newModule);
-        }
+    public void writeFunctionOrCall(String operation, String name,int numLocal){
+
         switch(operation){
             case FUNCTION:
                 writeFunction(name, numLocal); //write a function declaration
@@ -1010,21 +982,5 @@ public class CodeWriter {
 
     	
     }
-    
-    public void closeFile(){
-    	/*if(!this.containSysInit){
-    		for(int i = 0; i <= 121; i++)
-    			this.asmLines.set(i, "@0");
-    	}*/
-    }
 
-    private void setStaticAddress(String curClass){
-        if(!this.classesMap.containsKey(curClass)){
-            this.staticAddress+=this.staticCounter;
-            this.classesMap.put(curClass,this.staticAddress); //todo change the name of classesMap
-        }
-        else{
-            this.staticAddress=this.classesMap.get(curClass);
-        }
-    }
 }

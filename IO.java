@@ -55,16 +55,17 @@ public class IO {
     /**
      * read and parse a specific file
      * @param reader a bufferReader
+     * @param className the current class name
      * @throws IOException
      */
-    private static void readAndParse(BufferedReader reader) throws IOException {
+    private static void readAndParse(BufferedReader reader, String className) throws IOException {
         Parser parser = new Parser(); //define a new parser
         String text;
         while ((text = reader.readLine()) != null) // add the lines to the container
         {
             parser.getVmLines().add(text);
         }
-        parser.parseVmFile(); // parse the vm text
+        parser.parseVmFile(className); // parse the vm text
     }
 
     /**
@@ -105,7 +106,7 @@ public class IO {
                  BufferedReader reader = new BufferedReader(vmFile))
             {
                 //read the file and parse it
-                readAndParse(reader);
+                readAndParse(reader,vmList.get(j).getName());
 
             } catch (IOException e) {
                 System.out.println(UNREADABLE_FILE);

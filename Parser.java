@@ -11,7 +11,7 @@ public class Parser {
     private static final String EMPTY_LINE= "^\\s*+$";
     private static final Pattern EMPTY_LINE_PATTERN= Pattern.compile(EMPTY_LINE);
     private static final Pattern COMMENT_PATTERN= Pattern.compile(ONE_LINER_COMMENT);
-    private static final String DOT ="//.";
+    private static final String DOT ="[a-zA-Z]{1}\\w*+(\\.){1}";
     private static final Pattern DOT_PATTERN= Pattern.compile(DOT);
 
     private static final String PUSH_AND_POP ="\\b(push|pop)\\b";
@@ -55,7 +55,7 @@ public class Parser {
     /** a string that represent a function name*/
     private String function;
 
-    private String curClass;
+    private String className;
 
     /** a constructor*/
     public Parser(){
@@ -71,9 +71,12 @@ public class Parser {
     /**
      * parse the vm file
      */
-    public void parseVmFile(){
+    public void parseVmFile(String className){
         for(int i=0; i<vmLines.size();i++){
+
+            parseClassName(className); //parse the class name
             this.curLine= vmLines.get(i); // assign the current line
+
             if(deleteOneLinerComment(this.curLine)||deleteBlankLines(this.curLine))
             { //skip if the row is a comment or a blank line
                 continue;
@@ -83,7 +86,7 @@ public class Parser {
                 signifyMemorySegment(); //check which memory segment
                 insertDecimalNumber(); //assign a decimal number
                 CodeWriter.getCodeWriter().writePushPop(this.operation,
-                        this.curMemory,this.curNumber); //translate the operation
+                        this.curMemory,this.curNumber,this.className); //translate the operation
             }
             else if(parseArithmetic())
             { //translate the arithmetic operation
@@ -213,12 +216,11 @@ public class Parser {
         {  //check for a declaration of a function or a function call
             parseName(); //parse the function name and the number of arguments
             this.function=this.name;
-            parseClassName();
             if(!insertDecimalNumber()){
                 this.curNumber=0;
             }
             CodeWriter.getCodeWriter().writeFunctionOrCall(this.operation, this.name,
-                    this.curNumber,this.curClass);
+                    this.curNumber);
         }
         else{ //if the operation was return
             CodeWriter.getCodeWriter().writeReturn(this.operation, this.name,this.curNumber);
@@ -233,10 +235,14 @@ public class Parser {
         this.function=null;
     }
 
-    private void parseClassName(){
-        this.curMatcher=DOT_PATTERN.matcher(this.function);
+    /**
+     * parse the class name
+     * @param className the name of the file that being parsed
+     */
+    private void parseClassName(String className){
+        this.curMatcher=DOT_PATTERN.matcher(className);
         if(this.curMatcher.find()){
-            this.curClass= this.function.substring(0,this.curMatcher.end()-1);
+            this.className= className.substring(0,this.curMatcher.end());
         }
     }
 }
