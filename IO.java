@@ -15,6 +15,7 @@ public class IO {
     private static final Pattern VM_PATTERN =Pattern.compile(VM);
     private static final int THREE =3;
     private static final String SLASH="\\";
+    private static final String NEW_LINE="\n";
 
 
     /**
@@ -33,39 +34,6 @@ public class IO {
         } else {
             System.out.println(FILE_NOT_EXISTS);
         }
-    }
-
-    /**
-     * get the name of the asm file and exchange it to asm file
-     * @param file the input file
-     * @return the file name but with a suffix of a asm file
-     */
-    private static String setOutputFileName( File file ) {
-        String location= file.getAbsolutePath();
-        if(file.isFile()){ // if the there is only one file
-            location=location.substring(0,location.length()-THREE);
-            location+= ASM;
-        }
-        else{ //if it is a directory
-            location+=SLASH+file.getName()+ASM;
-        }
-        return location;
-    }
-
-    /**
-     * read and parse a specific file
-     * @param reader a bufferReader
-     * @param className the current class name
-     * @throws IOException
-     */
-    private static void readAndParse(BufferedReader reader, String className) throws IOException {
-        Parser parser = new Parser(); //define a new parser
-        String text;
-        while ((text = reader.readLine()) != null) // add the lines to the container
-        {
-            parser.getVmLines().add(text);
-        }
-        parser.parseVmFile(className); // parse the vm text
     }
 
     /**
@@ -124,10 +92,47 @@ public class IO {
 
             //write the binary code to an output file
             for (int i = 0; i < CodeWriter.getCodeWriter().getAsmLines().size(); i++) {
-                writer.write(CodeWriter.getCodeWriter().getAsmLines().get(i) + "\n");
+                writer.write(CodeWriter.getCodeWriter().getAsmLines().get(i) + NEW_LINE);
             }
         }catch(IOException e2){
             System.out.println(UNWRITTENABLE_FILE);
         }
     }
+
+    /**
+     * get the name of the asm file and exchange it to asm file
+     * @param file the input file
+     * @return the file name but with a suffix of a asm file
+     */
+    private static String setOutputFileName( File file ) {
+        String location= file.getAbsolutePath();
+        if(file.isFile()){ // if the there is only one file
+            location=location.substring(0,location.length()-THREE);
+            location+= ASM;
+        }
+        else{ //if it is a directory
+            location+=SLASH+file.getName()+ASM;
+        }
+        return location;
+    }
+
+    /**
+     * read and parse a specific file
+     * @param reader a bufferReader
+     * @param className the current class name
+     * @throws IOException
+     */
+    private static void readAndParse(BufferedReader reader, String className) throws IOException {
+        Parser parser = new Parser(); //define a new parser
+        String text;
+        while ((text = reader.readLine()) != null) // add the lines to the container
+        {
+            parser.getVmLines().add(text);
+        }
+        parser.parseVmFile(className); // parse the vm text
+    }
+
+
+
+
 }

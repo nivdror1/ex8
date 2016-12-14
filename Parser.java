@@ -7,35 +7,48 @@ import java.util.regex.Pattern;
  * parse the vm language into asm language
  */
 public class Parser {
+    /** a regex for a comment*/
     private static final String ONE_LINER_COMMENT ="^/{2}";
+    private static final Pattern COMMENT_PATTERN= Pattern.compile(ONE_LINER_COMMENT);
+
+    /** a regex for an empty line*/
     private static final String EMPTY_LINE= "^\\s*+$";
     private static final Pattern EMPTY_LINE_PATTERN= Pattern.compile(EMPTY_LINE);
-    private static final Pattern COMMENT_PATTERN= Pattern.compile(ONE_LINER_COMMENT);
-    private static final String DOT ="[a-zA-Z]{1}\\w*+(\\.){1}";
-    private static final Pattern DOT_PATTERN= Pattern.compile(DOT);
 
+    /** a regex for a class name*/
+    private static final String CLASS_NAME ="[a-zA-Z]{1}\\w*+(\\.){1}";
+    private static final Pattern CLASS_NAME_PATTERN= Pattern.compile(CLASS_NAME);
+
+    /** a regex for a push or pop operation*/
     private static final String PUSH_AND_POP ="\\b(push|pop)\\b";
     private static final Pattern PUSH_AND_POP_PATTERN = Pattern.compile(PUSH_AND_POP);
 
-
+    /** a regex for an operation*/
     private static final String OPERATION= "\\b(label|goto|if-goto|call|function|return)\\b";
     private static final Pattern OPERATION_PATTERN=Pattern.compile(OPERATION);
 
+    /** define program flow operations*/
     private static final String PROGRAM_FLOW= "\\b(label|goto|if-goto)\\b";
+    /** define program control operations*/
+    private static final String FUNCTION_OR_CALL= "\\b(call|function)\\b";
+
+    /** a regex for a name*/
     private static final String NAME ="[a-zA-Z]{1}\\w*+(\\.\\w++)?";
     private static final Pattern NAME_PATTERN= Pattern.compile(NAME);
 
-    private static final String FUNCTION_OR_CALL= "\\b(call|function)\\b";
-
+    /** a regex for a memory segment*/
     private static final String MEMORY= "\\b(constant|local|argument|this|that|pointer|temp|static)\\b";
     private static final Pattern MEMORY_PATTERN= Pattern.compile(MEMORY);
 
-    private static final String DECIMAL_NUMBER = "\\d++";
-    private static final Pattern DECIMAL_NUMBER_PATTERN= Pattern.compile(DECIMAL_NUMBER);
-
+    /** a regex for a stack arithmetic operation */
     private static final String ARITHMETIC ="\\b(add|sub|neg|eq|gt|lt|and|or|not)\\b";
     private static final Pattern ARITHMETIC_PATTERN= Pattern.compile(ARITHMETIC);
 
+    /** a regex for a decimal number*/
+    private static final String DECIMAL_NUMBER = "\\d++";
+    private static final Pattern DECIMAL_NUMBER_PATTERN= Pattern.compile(DECIMAL_NUMBER);
+
+    /** a function label differ*/
     private static final String FUNCTION_LABEL_DIFFER="$";
 
     /** A string that represent the current memory address*/
@@ -59,11 +72,15 @@ public class Parser {
 
     /** a constructor*/
     public Parser(){
-        this.name=this.operation=this.curMemory=this.name=this.function="";
+        this.name=this.operation=this.curMemory=this.name="";
         this.vmLines= new ArrayList<>();
-
+        this.function= null;
     }
 
+    /**
+     * get the vmLines ArrayList
+     * @return get vmLines ArrayList
+     */
     public ArrayList<String> getVmLines(){
         return this.vmLines;
     }
@@ -207,23 +224,23 @@ public class Parser {
         signifyOperation(); // check for the operation
         if(this.operation.matches(PROGRAM_FLOW)){ // check for a program flow operation
             parseName(); //parse the name with the function name at the start
-            if(this.name==null){
+            if(this.function!=null){
                this.name=this.function+FUNCTION_LABEL_DIFFER+this.name;
             }
             CodeWriter.getCodeWriter().writeProgramFlow(this.operation, this.name);
         }
         else if(this.operation.matches(FUNCTION_OR_CALL))
         {  //check for a declaration of a function or a function call
-            parseName(); //parse the function name and the number of arguments
+            parseName(); //parse the function name
             this.function=this.name;
-            if(!insertDecimalNumber()){
-                this.curNumber=0;
-            }
+            insertDecimalNumber(); //parse the number of local variables
+
+            //translate to assembly language
             CodeWriter.getCodeWriter().writeFunctionOrCall(this.operation, this.name,
                     this.curNumber);
         }
         else{ //if the operation was return
-            CodeWriter.getCodeWriter().writeReturn(this.operation, this.name,this.curNumber);
+            CodeWriter.getCodeWriter().writeReturn();
         }
     }
 
@@ -232,7 +249,7 @@ public class Parser {
      */
     private void resetDataMembers(){
         this.name=this.operation=this.curMemory=this.name="";
-        this.function=null;
+        this.curNumber=0;
     }
 
     /**
@@ -240,8 +257,9 @@ public class Parser {
      * @param className the name of the file that being parsed
      */
     private void parseClassName(String className){
-        this.curMatcher=DOT_PATTERN.matcher(className);
-        if(this.curMatcher.find()){
+        this.curMatcher=CLASS_NAME_PATTERN.matcher(className);
+        if(this.curMatcher.find()) // find the class name including the file
+        {
             this.className= className.substring(0,this.curMatcher.end());
         }
     }

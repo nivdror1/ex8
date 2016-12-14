@@ -36,17 +36,18 @@ public class CodeWriter {
     private static final String STATIC= "static";
     private static final String TEMP= "temp";
 
-    /**program control operations*/
+    /**program flow operations*/
     private static final String IF_GOTO="if-goto";
     private static final String GOTO ="goto";
 
+    /** program control operations*/
     private static final String FUNCTION ="function";
-    private static final String CALL ="call";
     
-    /**	other	*/
+    /**	signify a space	*/
     private static final String SPACE="\\s";
 
-    public enum AssemblyFunction {
+    /** an enum for the assembly functions*/
+    private enum AssemblyFunction {
         CopyAToR13,
         CopyAToR14,
         CopyFromRamAddressInR14ToR13,
@@ -61,9 +62,7 @@ public class CodeWriter {
         PushR13,
         PushD,
         AdvanceStack
-
     }
-
 
     /** the unique instance of CodeWriter*/
     private static CodeWriter codeWriter= null;
@@ -82,7 +81,6 @@ public class CodeWriter {
     
     private int returnCounter;
 
-    private boolean containSysInit = false;
 
 
     /** a singleton constructor*/
@@ -331,7 +329,7 @@ public class CodeWriter {
      * push the ~content~ of the SP/ARG/LOCAL/THIS/THAT
      * == push from R0-R4
      */
-    void writePushAddresses(String segment){
+    private void writePushAddresses(String segment){
     	switch (segment){
     	case SP:
     		asm("@SP");
@@ -398,11 +396,9 @@ public class CodeWriter {
             case STATIC:
                 writePopToStatic(address,className);
                 break;
-            //case (null):
             default:
                 writeFunctionFromFile(AssemblyFunction.PopToD);
                 break;
-
         }
     }
 
@@ -424,7 +420,7 @@ public class CodeWriter {
             } catch (IOException e) {
                 System.out.println("Files error   " + path);
                 e.printStackTrace();
-            }// define the BufferReader and BufferWriter
+            }// define the BufferReader and BufferWriter //todo is there a need for this?
 
         }else{
             System.out.println("error! function file " + path + "not exist!!!");
@@ -662,7 +658,7 @@ public class CodeWriter {
      * add the assembly functions to the hash map
      */
     private void addFunctionsToHashMap(){
-        String dirPath = "assemblyCode";//"C:\\Users\\omri\\workspace\\ex7\\assemblyCode";
+        String dirPath = "assemblyCode";
         codeFileMap.put(AssemblyFunction.CopyAToR13, dirPath + "\\CopyAToR13.asm");
         codeFileMap.put(AssemblyFunction.CopyAToR14, dirPath + "\\CopyAToR14.asm");
         codeFileMap.put(AssemblyFunction.CopyFromR13ToRamAddressInR14, dirPath + "\\CopyFromR13ToRamAddressInR14.asm");
@@ -743,14 +739,10 @@ public class CodeWriter {
             case FUNCTION:
                 writeFunction(name, numLocal); //write a function declaration
                 break;
-            case CALL:
-            	writeCall(name, numLocal);
             default:
+            	writeCall(name, numLocal);
                 break;
         }
-    }
-    public void writeReturn (String operation, String name,int number){
-    	writeReturn2();
     }
 
     /**
@@ -760,11 +752,6 @@ public class CodeWriter {
      * @param numLocal the number of local variables
      */
     private void writeFunction(String name, int numLocal){
-    	
-    	if (name.equals("Sys.init")){
-    		this.containSysInit = true;
-    	}
-    	
         asm("// ---function declaration---");
         asm("("+name+")");
         for(int i=0;i<numLocal;i++){
@@ -781,7 +768,7 @@ public class CodeWriter {
     	
     	asm("// ----- call " + functionName + "  Line number = " + this.lineCounter);
     	
-    	//int numOfRowsUntilGoto = 0;	//TODO
+    	//int numOfRowsUntilGoto = 0;	//TODO can we delete this?
     	//writePushToConstant(numOfRowsUntilGoto);
     	asm(returnSymbol);
     	asm("D=A");
@@ -823,7 +810,7 @@ public class CodeWriter {
         asm("@LCL");
         asm("M=D");
 
-        /*asm("// LCL = SP");
+        /*asm("// LCL = SP"); //todo can we delete this?
         writeFunctionFromFile(AssemblyFunction.LoadStackAddressToA);
         asm("D=M");
         asm("@LCL");
@@ -838,9 +825,9 @@ public class CodeWriter {
     	asm(returnLabel);
     }
     
-    private void writeReturn2(){
+    public void writeReturn(){
     	/*
-    	 *  
+    	 *  //todo can we delete this?
     	 * @LCL
     	 * D=M
     	 * 
@@ -921,7 +908,7 @@ public class CodeWriter {
     	/*
     	 * @R13
     	 * D=A
-    	 * 
+    	 *  //todo can we delete this?
     	 * LoadArgumentAddressToA
     	 * M=D
     	 */
@@ -940,7 +927,7 @@ public class CodeWriter {
     	
     	asm("@THAT");
     	asm("M=D");
-    	//writeFunctionFromFile(AssemblyFunction.PushD);
+    	//writeFunctionFromFile(AssemblyFunction.PushD); //todo can we delete this?
     	//writePopAddresses(THAT);
 
     	
@@ -950,7 +937,7 @@ public class CodeWriter {
     	asm("A=M");
     	asm("D=M");
 //    	writeFunctionFromFile(AssemblyFunction.PushD);
-  //  	writePopAddresses(THIS);
+  //  	writePopAddresses(THIS); //todo can we delete this?
     	asm("@THIS");
     	asm("M=D");
     	
@@ -960,7 +947,7 @@ public class CodeWriter {
     	asm("A=M");
     	asm("D=M");
   //  	writeFunctionFromFile(AssemblyFunction.PushD);
-    //	writePopAddresses(ARGUMENT);
+    //	writePopAddresses(ARGUMENT); //todo can we delete this?
     	asm("@ARG");
     	asm("M=D");
     	
@@ -969,7 +956,7 @@ public class CodeWriter {
     	asm("M=M-1");
     	asm("A=M");
     	asm("D=M");
-    	//writeFunctionFromFile(AssemblyFunction.PushD);
+    	//writeFunctionFromFile(AssemblyFunction.PushD); //todo can we delete this?
     	//writePopAddresses(LOCAL);
     	asm("@LCL");
     	asm("M=D");
@@ -979,6 +966,10 @@ public class CodeWriter {
     	asm("0; JMP");
     	
     }
+
+    /**
+     * set sp as RAM[256] and call the function Sys.init
+     */
     public void startFile(){
     	asm("@256");
     	asm("D=A");
