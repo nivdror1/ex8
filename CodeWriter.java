@@ -275,16 +275,15 @@ public class CodeWriter {
      * write push or pop operation
      * @param operation a string representing the arithmetic operation
      * @param memory a string representing the memory segment
-     * @param address a string representing the address
+     * @param arg2 a string representing the address or the data
      * @param className the current class name
      */
-    public void writePushPop(String operation, String memory, int address, String className){
-        // todo is really a address input or data or both?
+    public void writePushPop(String operation, String memory, int arg2, String className){
         if(operation.equals(PUSH)) {
-            writePush(memory, address,className); //write push
+            writePush(memory, arg2,className); //write push
         }
         else if(operation.equals(POP)){
-            writePop(memory, address,className); //write pop
+            writePop(memory, arg2,className); //write pop
         }
 
     }
@@ -352,7 +351,9 @@ public class CodeWriter {
         writeFunctionFromFile(AssemblyFunction.PushR13);
     }
 
-    //todo i don't understand what the function does, so omri please document this function
+    /**
+     * push operation helper
+     */
     private void pushSub_arg_const_this_that(){
         asm("A=A+D");
         asm("// A have now the address of the data to take from the ram");
@@ -420,7 +421,7 @@ public class CodeWriter {
             } catch (IOException e) {
                 System.out.println("Files error   " + path);
                 e.printStackTrace();
-            }// define the BufferReader and BufferWriter //todo is there a need for this?
+            }
 
         }else{
             System.out.println("error! function file " + path + "not exist!!!");
@@ -767,9 +768,7 @@ public class CodeWriter {
     	returnCounter++;
     	
     	asm("// ----- call " + functionName + "  Line number = " + this.lineCounter);
-    	
-    	//int numOfRowsUntilGoto = 0;	//TODO can we delete this?
-    	//writePushToConstant(numOfRowsUntilGoto);
+
     	asm(returnSymbol);
     	asm("D=A");
     	writeFunctionFromFile(AssemblyFunction.PushD);
@@ -810,15 +809,6 @@ public class CodeWriter {
         asm("@LCL");
         asm("M=D");
 
-        /*asm("// LCL = SP"); //todo can we delete this?
-        writeFunctionFromFile(AssemblyFunction.LoadStackAddressToA);
-        asm("D=M");
-        asm("@LCL");
-        asm("M=D");
-        */
-               
-        
-        
     	// goto f
     	asm("@" + functionName);
     	asm("0; JMP");
@@ -826,63 +816,7 @@ public class CodeWriter {
     }
     
     public void writeReturn(){
-    	/*
-    	 *  //todo can we delete this?
-    	 * @LCL
-    	 * D=M
-    	 * 
-    	 * @frame
-    	 * M=D
-    	 * 
-    	 * A=D-5
-    	 * D=M
-    	 * @R15
-    	 * M=D
-    	 * ----------------------------
-    	 * load ARG address to A
-    	 * Copy A to R14
-    	 * 
-    	 * popToR13
-    	 * copyR13 to address in r14
-    	 * 
-    	 * ** *ARG = pop() - finished
-    	 * ** SP=ARG+1
-    	 * @ARG
-    	 * D=A+1
-    	 * @SP
-    	 * M=D
-    	 * 
-    	 * @frame
-    	 * M=M-1
-    	 * D=M
-    	 * PushD
-    	 * PopAddressToThat
-    	 * 
-    	 * @frame
-    	 * M=M-1
-    	 * D=M
-    	 * PushD
-    	 * PopAddressToThis
-    	 * 
-    	 * 
-    	 * @frame
-    	 * M=M-1
-    	 * D=M
-    	 * PushD
-    	 * PopAddressToArgument
-    	 * 
-    	 * @frame
-    	 * M=M-1
-    	 * D=M
-    	 * PushD
-    	 * PopAddressToLocal // frame is nothing now! couse local has changed
-    	 * 
-    	 * @R15
-    	 * A=M
-    	 * 0; JMP
-    	 * 
-    	 * 
-    	 */
+
     	asm("//----------------- return! ---------------");
     	//----------------------
     	asm("@LCL");
@@ -905,13 +839,6 @@ public class CodeWriter {
     	asm("D=M");
     	writeFunctionFromFile(AssemblyFunction.LoadArgumentAddressToA);
     	asm("M=D");
-    	/*
-    	 * @R13
-    	 * D=A
-    	 *  //todo can we delete this?
-    	 * LoadArgumentAddressToA
-    	 * M=D
-    	 */
     	    	
     	asm("// restore SP" + this.lineCounter);
     	asm("@ARG");
@@ -927,17 +854,13 @@ public class CodeWriter {
     	
     	asm("@THAT");
     	asm("M=D");
-    	//writeFunctionFromFile(AssemblyFunction.PushD); //todo can we delete this?
-    	//writePopAddresses(THAT);
 
-    	
     	asm("// restore THIS");
     	asm("@R14");
     	asm("M=M-1");
     	asm("A=M");
     	asm("D=M");
-//    	writeFunctionFromFile(AssemblyFunction.PushD);
-  //  	writePopAddresses(THIS); //todo can we delete this?
+
     	asm("@THIS");
     	asm("M=D");
     	
@@ -946,8 +869,7 @@ public class CodeWriter {
     	asm("M=M-1");
     	asm("A=M");
     	asm("D=M");
-  //  	writeFunctionFromFile(AssemblyFunction.PushD);
-    //	writePopAddresses(ARGUMENT); //todo can we delete this?
+
     	asm("@ARG");
     	asm("M=D");
     	
@@ -956,8 +878,7 @@ public class CodeWriter {
     	asm("M=M-1");
     	asm("A=M");
     	asm("D=M");
-    	//writeFunctionFromFile(AssemblyFunction.PushD); //todo can we delete this?
-    	//writePopAddresses(LOCAL);
+
     	asm("@LCL");
     	asm("M=D");
     	
