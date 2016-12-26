@@ -16,7 +16,7 @@ EXEC=VMtranslator
 
 TAR=tar
 TARFLAGS=cvf
-TARNAME=project7.tar
+TARNAME=project8.tar
 TARSRCS=$(SRCS) $(EXEC) README Makefile
 
 all: compile
