@@ -14,7 +14,7 @@ public class IO {
     private static final String VM= DOT+"vm";
     private static final Pattern VM_PATTERN =Pattern.compile(VM);
     private static final int THREE =3;
-    private static final String SLASH="\\";
+    private static final String SLASH="/";
     private static final String NEW_LINE="\n";
 
 
