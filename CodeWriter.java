@@ -638,7 +638,7 @@ public class CodeWriter {
      */
     private void writeIf(String name){
         asm("// if_goto");
-        writeFunctionFromFile(AssemblyFunction.PopToD);
+        popToD();
         asm("@"+name);
         asm("D;JNE");
         asm("// end if_goto");
@@ -695,7 +695,7 @@ public class CodeWriter {
         for(int i=0;i<numLocal;i++){
         	asm("@0");
         	asm("D=A");
-            writeFunctionFromFile(AssemblyFunction.PushD);
+            pushD();
         }
         asm("// ---end function declaration---");
 }
@@ -708,7 +708,7 @@ public class CodeWriter {
 
     	asm(returnSymbol);
     	asm("D=A");
-    	writeFunctionFromFile(AssemblyFunction.PushD);
+    	pushD();
     	
     	
     	asm("// push LCL");
@@ -726,9 +726,9 @@ public class CodeWriter {
         asm("// ARG = SP - n - 5");
         
         asm("// load and push SP");
-        writeFunctionFromFile(AssemblyFunction.LoadStackAddressToA);
-        writeFunctionFromFile(AssemblyFunction.CopyAToR13);
-        writeFunctionFromFile(AssemblyFunction.PushR13);
+        loadStackAddressToA();
+        copyAToR13();
+        pushR13();
         
         asm("// push n; push 5; add");
         writePushToConstant(5);
@@ -737,7 +737,7 @@ public class CodeWriter {
         asm("// sub");
         writeSub();
         asm("// pop to ARG");
-        writeFunctionFromFile(AssemblyFunction.PopToD);
+        popToD();
         asm("@ARG");
         asm("M=D");
         
@@ -771,10 +771,10 @@ public class CodeWriter {
     	// ----------------------
     	asm("// manage returned value");
     	
-    	writeFunctionFromFile(AssemblyFunction.PopR13);
+    	popR13();
     	asm("@R13");
     	asm("D=M");
-    	writeFunctionFromFile(AssemblyFunction.LoadArgumentAddressToA);
+    	loadArgumentAddressToA();
     	asm("M=D");
     	    	
     	asm("// restore SP" + this.lineCounter);
@@ -962,5 +962,19 @@ public class CodeWriter {
         asm("@SP");
         asm("M=M+1");
     }
+
+    /**
+     * push D
+     */
+    private void pushD() {
+        asm("//Push D");
+        asm("@SP");
+        asm("A=M");
+        asm("M=D");
+        asm("@SP");
+        asm("M=M+1");
+    }
+
+
 
 }
