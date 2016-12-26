@@ -1,0 +1,24 @@
+nivdror1, omribloch
+===============================================================================
+niv dror, ID 305498198, nivdror1@gmail.com
+omri bloch ID 312334444, omri.bloch@gmail.com
+===============================================================================
+
+                          Project 6: The Assembler
+
+                           ----------------------- 
+  
+
+Submitted Files
+---------------
+README - This file.
+VMtranslator - shell running script
+Makefile - the makefile
+
+IO.java - main file, manage the program flow and IO
+CodeWriter.java - translate the vm text to asm text
+Parser.java - parse the vm code
+
+Remarks
+-------
+* It was so fun!
