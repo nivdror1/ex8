@@ -222,19 +222,120 @@ public class CodeWriter {
      * @param RuleOnD the jump condition
      */
     private void writeLogic(String RuleOnD){
+
+        String endingLabel = "label" + this.labelCounter;
+        String xPos = "X>0_" + this.labelCounter;
+        String xNeg = "X<0_" + this.labelCounter;
+
+        String sameSign = "sameSign" + this.labelCounter;
+        String diffSign = "diffSign" + this.labelCounter;
+
+        String _false = "false" + this.labelCounter;
+        String _true = "true" + this.labelCounter;
+
+        this.labelCounter++;
+
+
+//        asm("@SP");
+//        asm("A=A-1");
+//        asm("A=A-1");
+//        asm("A=M");
+//        copyAToR13();
+
+
+        asm("//overflow check");
+
+        asm("@SP");
+        asm("A=A-1");
+        asm("D=M");
+
+        asm("@" + xPos);
+        asm("D; JGT");
+
+        asm("@SP");
+        asm("A=A-1");
+        asm("D=M");
+
+        asm("@" + xNeg);
+        asm("D; JLT");
+
+
+        asm(label(xPos));
+        asm("@SP");
+        asm("A=A-1");
+        asm("A=A-1");
+        asm("D=M");
+
+        asm("@14");
+        asm("M=1");
+        asm("@" + diffSign);
+        asm("D; JLT");
+        asm("@" + sameSign);
+        asm("0; JMP");
+
+
+        asm("(" + xNeg + ")" );
+
+        asm("@SP");
+        asm("A=A-1");
+        asm("A=A-1");
+        asm("D=M");
+
+        asm("@14");
+        asm("M=1");
+        asm("M=-M");
+
+        asm("@" + diffSign);
+        asm("D; JGT");
+        asm("@" + sameSign);
+        asm("0; JMP");
+
+
+        asm("(" + diffSign + ")");
+        asm("@14");
+        asm("D=M");
+        asm(loadLabel(_true));
+        asm(RuleOnD);
+        asm(loadLabel(_false));
+        asm("0; JMP");
+
+
+
+        asm("(" + sameSign + ")");
+
+
         writeSub();
+        popToD();
+        asm(loadLabel(_true));
+        asm(RuleOnD);//asm("D; JEQ");
+        asm(loadLabel(_false));
+        asm("0; JMP");
+
+
+
+        asm(label(_true));
+
         asm("@1");
         asm("A=-A");
         copyAToR13();
-        popToD();
-        asm("@label" + String.valueOf(this.labelCounter));
-        asm(RuleOnD);//asm("D; JEQ");
+
+        asm(loadLabel(endingLabel));
+        asm("0; JMP");
+
         asm("@0");
         copyAToR13();
-        asm("(label" + String.valueOf(this.labelCounter) + ")");
-        pushR13();
-        this.labelCounter++;
+        asm(label(_false));
 
+        asm(label(endingLabel));
+        pushR13();
+
+    }
+
+    private static String label(String str){
+        return "(" + str + ")";
+    }
+    private static String loadLabel(String str){
+        return "@" + str;
     }
     // ---------------------------memory access functions --------------
 
