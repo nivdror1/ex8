@@ -325,9 +325,10 @@ public class CodeWriter {
         asm(loadLabel(endingLabel));
         asm("0; JMP");
 
+
+        asm(label(_false));
         asm("@0");
         copyAToR13();
-        asm(label(_false));
 
         asm(label(endingLabel));
         pushR13();
