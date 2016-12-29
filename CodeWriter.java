@@ -224,8 +224,8 @@ public class CodeWriter {
     private void writeLogic(String RuleOnD){
 
         String endingLabel = "label" + this.labelCounter;
-        String xPos = "X>0_" + this.labelCounter;
-        String xNeg = "X<0_" + this.labelCounter;
+        String xPos = "XG0_" + this.labelCounter;
+        String xNeg = "XL0_" + this.labelCounter;
 
         String sameSign = "sameSign" + this.labelCounter;
         String diffSign = "diffSign" + this.labelCounter;
@@ -245,14 +245,14 @@ public class CodeWriter {
 
         asm("//overflow check");
 
-        asm("@SP");
+        loadStackAddressToA();
         asm("A=A-1");
         asm("D=M");
 
         asm("@" + xPos);
         asm("D; JGT");
 
-        asm("@SP");
+        loadStackAddressToA();
         asm("A=A-1");
         asm("D=M");
 
@@ -261,22 +261,7 @@ public class CodeWriter {
 
 
         asm(label(xPos));
-        asm("@SP");
-        asm("A=A-1");
-        asm("A=A-1");
-        asm("D=M");
-
-        asm("@14");
-        asm("M=1");
-        asm("@" + diffSign);
-        asm("D; JLT");
-        asm("@" + sameSign);
-        asm("0; JMP");
-
-
-        asm("(" + xNeg + ")" );
-
-        asm("@SP");
+        loadStackAddressToA();
         asm("A=A-1");
         asm("A=A-1");
         asm("D=M");
@@ -284,14 +269,32 @@ public class CodeWriter {
         asm("@14");
         asm("M=1");
         asm("M=-M");
-
         asm("@" + diffSign);
-        asm("D; JGT");
+        asm("D; JLT");
         asm("@" + sameSign);
         asm("0; JMP");
 
 
-        asm("(" + diffSign + ")");
+        asm(label(xNeg));
+
+        loadStackAddressToA();
+        asm("A=A-1");
+        asm("A=A-1");
+        asm("D=M");
+
+        asm("@14");
+        asm("M=1");
+        //asm("M=-M");
+
+        asm(loadLabel(diffSign));
+        asm("D; JGT");
+        asm(loadLabel(sameSign));
+        asm("0; JMP");
+
+
+        asm(label(diffSign));
+        popToD();
+        popToD();
         asm("@14");
         asm("D=M");
         asm(loadLabel(_true));
@@ -301,7 +304,7 @@ public class CodeWriter {
 
 
 
-        asm("(" + sameSign + ")");
+        asm(label(sameSign));
 
 
         writeSub();
@@ -488,7 +491,7 @@ public class CodeWriter {
      * add an asm line to asmLines
      */
     private void asm(String asmLine){
-        this.asmLines.add(asmLine + "//" + this.lineCounter);
+        this.asmLines.add(asmLine + "       //" + this.lineCounter);
         //	increment lineCounter
         String cleanLine = asmLine.replaceAll(SPACE,""); 
         if (!(	(cleanLine.charAt(0) == '/') ||
